@@ -1,0 +1,2 @@
+ACTORS_PLACEHOLDER = ""
+BREAST_QUERY = "SELECT * FROM breast_cancer"
