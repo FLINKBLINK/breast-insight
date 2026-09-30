@@ -4,6 +4,20 @@ import plotly.graph_objects as go
 from services.data_service import load_data
 from machine_learning.model import train_model
 
+from io import BytesIO
+
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Spacer,
+    Table,
+    TableStyle
+)
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.enums import TA_CENTER
+
 
 # ==========================================
 # CONFIGURAÇÃO DA PÁGINA
@@ -96,6 +110,223 @@ if model_type == "SVM":
             ]
         )
 
+def gerar_pdf(metrics, model_name, test_size, svm_c=None,
+              svm_kernel=None, svm_gamma=None):
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=40,
+        bottomMargin=40
+    )
+
+    styles = getSampleStyleSheet()
+
+    title_style = styles["Title"]
+    title_style.alignment = TA_CENTER
+
+    story = []
+
+    # ==========================================
+    # TÍTULO
+    # ==========================================
+
+    story.append(
+        Paragraph(
+            "Breast Insight — Relatório de Machine Learning",
+            title_style
+        )
+    )
+
+    story.append(Spacer(1, 20))
+
+    story.append(
+        Paragraph(
+            f"<b>Modelo:</b> {model_name}",
+            styles["BodyText"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            f"<b>Proporção de teste:</b> {test_size:.0%}",
+            styles["BodyText"]
+        )
+    )
+
+    story.append(Spacer(1, 15))
+
+    # ==========================================
+    # CONFIGURAÇÕES DO SVM
+    # ==========================================
+
+    if model_name == "Support Vector Machine":
+
+        story.append(
+            Paragraph(
+                "<b>Configurações do SVM</b>",
+                styles["Heading2"]
+            )
+        )
+
+        svm_data = [
+            ["Parâmetro", "Valor"],
+            ["C", str(svm_c)],
+            ["Kernel", str(svm_kernel)],
+            ["Gamma", str(svm_gamma)]
+        ]
+
+        table = Table(
+            svm_data,
+            colWidths=[150, 300]
+        )
+
+        table.setStyle(
+            TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("ALIGN", (1, 1), (1, -1), "CENTER"),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ])
+        )
+
+        story.append(table)
+
+        story.append(Spacer(1, 20))
+
+    # ==========================================
+    # MÉTRICAS
+    # ==========================================
+
+    story.append(
+        Paragraph(
+            "<b>Resultados</b>",
+            styles["Heading2"]
+        )
+    )
+
+    metrics_data = [
+        ["Métrica", "Resultado"],
+        ["Accuracy", f"{metrics['accuracy']:.3%}"],
+        ["Precision", f"{metrics['precision']:.3%}"],
+        ["Recall", f"{metrics['recall']:.3%}"],
+        ["F1-Score", f"{metrics['f1']:.3%}"],
+        ["ROC-AUC", f"{metrics['roc_auc']:.3%}"],
+    ]
+
+    table = Table(
+        metrics_data,
+        colWidths=[250, 200]
+    )
+
+    table.setStyle(
+        TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("ALIGN", (1, 1), (1, -1), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ])
+    )
+
+    story.append(table)
+
+    story.append(Spacer(1, 25))
+
+    # ==========================================
+    # MATRIZ DE CONFUSÃO
+    # ==========================================
+
+    story.append(
+        Paragraph(
+            "<b>Matriz de Confusão</b>",
+            styles["Heading2"]
+        )
+    )
+
+    cm = metrics["confusion_matrix"]
+
+    cm_data = [
+        ["", "Predito: Benigno", "Predito: Maligno"],
+        ["Real: Benigno", str(cm[0][0]), str(cm[0][1])],
+        ["Real: Maligno", str(cm[1][0]), str(cm[1][1])]
+    ]
+
+    table = Table(
+        cm_data,
+        colWidths=[150, 150, 150]
+    )
+
+    table.setStyle(
+        TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+            ("BACKGROUND", (0, 0), (0, -1), colors.lightgrey),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+            ("ALIGN", (1, 1), (-1, -1), "CENTER"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ])
+    )
+
+    story.append(table)
+
+    story.append(Spacer(1, 25))
+
+    # ==========================================
+    # INTERPRETAÇÃO
+    # ==========================================
+
+    tp = cm[1][1]
+    fn = cm[1][0]
+    tn = cm[0][0]
+    fp = cm[0][1]
+
+    story.append(
+        Paragraph(
+            "<b>Resumo da matriz de confusão</b>",
+            styles["Heading2"]
+        )
+    )
+
+    story.append(
+        Paragraph(
+            f"O modelo classificou corretamente {tn} casos benignos "
+            f"e {tp} casos malignos. Foram observados {fp} falsos positivos "
+            f"e {fn} falsos negativos.",
+            styles["BodyText"]
+        )
+    )
+
+    story.append(Spacer(1, 20))
+
+    # ==========================================
+    # AVISO
+    # ==========================================
+
+    story.append(
+        Paragraph(
+            "<b>Observação:</b> este projeto possui finalidade educacional. "
+            "Os resultados não representam validação clínica e não devem "
+            "ser utilizados para diagnóstico médico.",
+            styles["BodyText"]
+        )
+    )
+
+    doc.build(story)
+
+    buffer.seek(0)
+
+    return buffer.getvalue()
+
 
 # ==========================================
 # BOTÃO DE TREINAMENTO
@@ -175,6 +406,26 @@ if st.button(
         "ROC AUC",
         f"{metrics['roc_auc']:.3f}"
     )
+
+
+    st.markdown("---")
+
+pdf = gerar_pdf(
+    metrics=metrics,
+    model_name="Support Vector Machine",
+    test_size=test_size,
+    svm_c=svm_c,
+    svm_kernel=svm_kernel,
+    svm_gamma=svm_gamma
+)
+
+st.download_button(
+    label="📄 Gerar relatório PDF",
+    data=pdf,
+    file_name="breast_insight_svm_relatorio.pdf",
+    mime="application/pdf",
+    use_container_width=True
+)
 
 
     # ======================================
