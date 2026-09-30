@@ -4,7 +4,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 
@@ -27,10 +26,19 @@ def train_model(
     svm_kernel="rbf",
     svm_gamma="scale"
 ):
+    """
+    Treina um modelo de Machine Learning para classificação
+    de diagnóstico benigno/maligno.
 
-    # ==========================================
-    # 1. SELEÇÃO DAS VARIÁVEIS
-    # ==========================================
+    Modelos disponíveis:
+    - Logistic Regression
+    - Support Vector Machine (SVM)
+
+    Retorna:
+    - pipeline treinado
+    - métricas
+    - artefatos do teste
+    """
 
     ignored = [
         "id",
@@ -39,17 +47,13 @@ def train_model(
     ]
 
     features = [
-        c for c in df.columns
-        if c not in ignored
+        column
+        for column in df.columns
+        if column not in ignored
     ]
 
     X = df[features]
     y = df["diagnosis"]
-
-
-    # ==========================================
-    # 2. DIVISÃO TREINO / TESTE
-    # ==========================================
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -59,10 +63,9 @@ def train_model(
         random_state=random_state
     )
 
-
-    # ==========================================
-    # 3. ESCOLHA DO MODELO
-    # ==========================================
+    # ==========================================================
+    # DEFINIÇÃO DO MODELO
+    # ==========================================================
 
     if model_type == "svm":
 
@@ -77,101 +80,88 @@ def train_model(
     else:
 
         model = LogisticRegression(
-            max_iter=3000
+            max_iter=3000,
+            random_state=random_state
         )
 
-
-    # ==========================================
-    # 4. PIPELINE
-    # ==========================================
+    # ==========================================================
+    # PIPELINE
+    # ==========================================================
 
     pipeline = Pipeline([
         (
             "imputer",
             SimpleImputer(strategy="median")
         ),
-
         (
             "scaler",
             StandardScaler()
         ),
-
         (
             "model",
             model
         )
     ])
 
-
-    # ==========================================
-    # 5. TREINAMENTO
-    # ==========================================
+    # ==========================================================
+    # TREINAMENTO
+    # ==========================================================
 
     pipeline.fit(
         X_train,
         y_train
     )
 
-
-    # ==========================================
-    # 6. PREDIÇÕES
-    # ==========================================
+    # ==========================================================
+    # PREDIÇÕES
+    # ==========================================================
 
     pred = pipeline.predict(X_test)
 
     proba = pipeline.predict_proba(X_test)[:, 1]
 
-
-    # ==========================================
-    # 7. MÉTRICAS
-    # ==========================================
+    # ==========================================================
+    # MÉTRICAS
+    # ==========================================================
 
     metrics = {
+        "accuracy": accuracy_score(
+            y_test,
+            pred
+        ),
 
-        "accuracy":
-            accuracy_score(
-                y_test,
-                pred
-            ),
+        "precision": precision_score(
+            y_test,
+            pred,
+            zero_division=0
+        ),
 
-        "precision":
-            precision_score(
-                y_test,
-                pred,
-                zero_division=0
-            ),
+        "recall": recall_score(
+            y_test,
+            pred,
+            zero_division=0
+        ),
 
-        "recall":
-            recall_score(
-                y_test,
-                pred,
-                zero_division=0
-            ),
+        "f1": f1_score(
+            y_test,
+            pred,
+            zero_division=0
+        ),
 
-        "f1":
-            f1_score(
-                y_test,
-                pred,
-                zero_division=0
-            ),
+        "roc_auc": roc_auc_score(
+            y_test,
+            proba
+        ),
 
-        "roc_auc":
-            roc_auc_score(
-                y_test,
-                proba
-            ),
-
-        "confusion_matrix":
-            confusion_matrix(
-                y_test,
-                pred
-            )
+        "confusion_matrix": confusion_matrix(
+            y_test,
+            pred
+        )
     }
 
-
-    # ==========================================
-    # 8. RETORNO
-    # ==========================================
+    # ==========================================================
+    # RETORNO
+    # ==========================================================
 
     return (
         pipeline,
