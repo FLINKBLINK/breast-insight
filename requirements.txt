@@ -5,3 +5,4 @@ streamlit
 plotly
 python-dotenv
 scikit-learn
+reportlab
