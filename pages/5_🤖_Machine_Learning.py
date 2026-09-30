@@ -3,20 +3,7 @@ import plotly.graph_objects as go
 
 from services.data_service import load_data
 from machine_learning.model import train_model
-
-from io import BytesIO
-
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle
-)
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.enums import TA_CENTER
+from machine_learning.pdf_report import generate_pdf
 
 
 # ==========================================
