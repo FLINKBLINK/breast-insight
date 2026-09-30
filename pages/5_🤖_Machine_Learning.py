@@ -6,360 +6,160 @@ from machine_learning.model import train_model
 from machine_learning.pdf_report import generate_pdf
 
 
-# ==========================================
+# ==========================================================
 # CONFIGURAÇÃO DA PÁGINA
-# ==========================================
+# ==========================================================
 
 st.title("🤖 Machine Learning")
 
-st.write(
-    "Treinamento de modelos para classificação "
-    "de tumores benignos e malignos."
+st.markdown(
+    """
+    Esta página permite treinar modelos de classificação
+    para os dados de câncer de mama.
+    """
 )
 
 
-# ==========================================
+# ==========================================================
 # CARREGAMENTO DOS DADOS
-# ==========================================
+# ==========================================================
 
 df = load_data()
 
 
-# ==========================================
-# CONFIGURAÇÕES
-# ==========================================
+# ==========================================================
+# CONFIGURAÇÕES DO MODELO
+# ==========================================================
 
-st.subheader("⚙️ Configurações do modelo")
+st.subheader("⚙️ Configurações")
 
 
-model_type = st.selectbox(
+selected_model = st.selectbox(
     "Modelo",
-    options=[
+    [
         "Logistic Regression",
-        "SVM"
+        "Support Vector Machine (SVM)"
     ]
 )
 
 
 test_size = st.slider(
     "Proporção de teste",
-    0.15,
-    0.40,
-    0.20,
-    0.05
+    min_value=0.15,
+    max_value=0.40,
+    value=0.20,
+    step=0.05
 )
 
 
-# ==========================================
-# CONFIGURAÇÕES DO SVM
-# ==========================================
+# ==========================================================
+# CONFIGURAÇÕES SVM
+# ==========================================================
 
 svm_c = 1.0
 svm_kernel = "rbf"
 svm_gamma = "scale"
 
 
-if model_type == "SVM":
+if selected_model == "Support Vector Machine (SVM)":
 
-    st.markdown("### 🔧 Parâmetros do SVM")
+    st.subheader("🧠 Configurações do SVM")
 
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-
-        svm_c = st.number_input(
-            "C",
-            min_value=0.01,
-            max_value=100.0,
-            value=1.0,
-            step=0.1
-        )
-
-    with col2:
-
-        svm_kernel = st.selectbox(
-            "Kernel",
-            options=[
-                "rbf",
-                "linear",
-                "poly",
-                "sigmoid"
-            ]
-        )
-
-    with col3:
-
-        svm_gamma = st.selectbox(
-            "Gamma",
-            options=[
-                "scale",
-                "auto"
-            ]
-        )
-
-def gerar_pdf(metrics, model_name, test_size, svm_c=None,
-              svm_kernel=None, svm_gamma=None):
-
-    buffer = BytesIO()
-
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=40,
-        leftMargin=40,
-        topMargin=40,
-        bottomMargin=40
+    svm_c = st.number_input(
+        "C",
+        min_value=0.01,
+        max_value=100.0,
+        value=1.0,
+        step=0.1,
+        help="Parâmetro de regularização do SVM."
     )
 
-    styles = getSampleStyleSheet()
-
-    title_style = styles["Title"]
-    title_style.alignment = TA_CENTER
-
-    story = []
-
-    # ==========================================
-    # TÍTULO
-    # ==========================================
-
-    story.append(
-        Paragraph(
-            "Breast Insight — Relatório de Machine Learning",
-            title_style
-        )
+    svm_kernel = st.selectbox(
+        "Kernel",
+        [
+            "rbf",
+            "linear",
+            "poly",
+            "sigmoid"
+        ],
+        index=0
     )
 
-    story.append(Spacer(1, 20))
-
-    story.append(
-        Paragraph(
-            f"<b>Modelo:</b> {model_name}",
-            styles["BodyText"]
-        )
+    svm_gamma = st.selectbox(
+        "Gamma",
+        [
+            "scale",
+            "auto"
+        ],
+        index=0
     )
 
-    story.append(
-        Paragraph(
-            f"<b>Proporção de teste:</b> {test_size:.0%}",
-            styles["BodyText"]
-        )
-    )
 
-    story.append(Spacer(1, 15))
-
-    # ==========================================
-    # CONFIGURAÇÕES DO SVM
-    # ==========================================
-
-    if model_name == "Support Vector Machine":
-
-        story.append(
-            Paragraph(
-                "<b>Configurações do SVM</b>",
-                styles["Heading2"]
-            )
-        )
-
-        svm_data = [
-            ["Parâmetro", "Valor"],
-            ["C", str(svm_c)],
-            ["Kernel", str(svm_kernel)],
-            ["Gamma", str(svm_gamma)]
-        ]
-
-        table = Table(
-            svm_data,
-            colWidths=[150, 300]
-        )
-
-        table.setStyle(
-            TableStyle([
-                ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                ("ALIGN", (1, 1), (1, -1), "CENTER"),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-                ("TOPPADDING", (0, 0), (-1, -1), 8),
-            ])
-        )
-
-        story.append(table)
-
-        story.append(Spacer(1, 20))
-
-    # ==========================================
-    # MÉTRICAS
-    # ==========================================
-
-    story.append(
-        Paragraph(
-            "<b>Resultados</b>",
-            styles["Heading2"]
-        )
-    )
-
-    metrics_data = [
-        ["Métrica", "Resultado"],
-        ["Accuracy", f"{metrics['accuracy']:.3%}"],
-        ["Precision", f"{metrics['precision']:.3%}"],
-        ["Recall", f"{metrics['recall']:.3%}"],
-        ["F1-Score", f"{metrics['f1']:.3%}"],
-        ["ROC-AUC", f"{metrics['roc_auc']:.3%}"],
-    ]
-
-    table = Table(
-        metrics_data,
-        colWidths=[250, 200]
-    )
-
-    table.setStyle(
-        TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (1, 1), (1, -1), "CENTER"),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ])
-    )
-
-    story.append(table)
-
-    story.append(Spacer(1, 25))
-
-    # ==========================================
-    # MATRIZ DE CONFUSÃO
-    # ==========================================
-
-    story.append(
-        Paragraph(
-            "<b>Matriz de Confusão</b>",
-            styles["Heading2"]
-        )
-    )
-
-    cm = metrics["confusion_matrix"]
-
-    cm_data = [
-        ["", "Predito: Benigno", "Predito: Maligno"],
-        ["Real: Benigno", str(cm[0][0]), str(cm[0][1])],
-        ["Real: Maligno", str(cm[1][0]), str(cm[1][1])]
-    ]
-
-    table = Table(
-        cm_data,
-        colWidths=[150, 150, 150]
-    )
-
-    table.setStyle(
-        TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-            ("BACKGROUND", (0, 0), (0, -1), colors.lightgrey),
-            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-            ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-            ("ALIGN", (1, 1), (-1, -1), "CENTER"),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
-            ("TOPPADDING", (0, 0), (-1, -1), 10),
-        ])
-    )
-
-    story.append(table)
-
-    story.append(Spacer(1, 25))
-
-    # ==========================================
-    # INTERPRETAÇÃO
-    # ==========================================
-
-    tp = cm[1][1]
-    fn = cm[1][0]
-    tn = cm[0][0]
-    fp = cm[0][1]
-
-    story.append(
-        Paragraph(
-            "<b>Resumo da matriz de confusão</b>",
-            styles["Heading2"]
-        )
-    )
-
-    story.append(
-        Paragraph(
-            f"O modelo classificou corretamente {tn} casos benignos "
-            f"e {tp} casos malignos. Foram observados {fp} falsos positivos "
-            f"e {fn} falsos negativos.",
-            styles["BodyText"]
-        )
-    )
-
-    story.append(Spacer(1, 20))
-
-    # ==========================================
-    # AVISO
-    # ==========================================
-
-    story.append(
-        Paragraph(
-            "<b>Observação:</b> este projeto possui finalidade educacional. "
-            "Os resultados não representam validação clínica e não devem "
-            "ser utilizados para diagnóstico médico.",
-            styles["BodyText"]
-        )
-    )
-
-    doc.build(story)
-
-    buffer.seek(0)
-
-    return buffer.getvalue()
-
-
-# ==========================================
-# BOTÃO DE TREINAMENTO
-# ==========================================
+# ==========================================================
+# TREINAMENTO
+# ==========================================================
 
 if st.button(
     "🚀 Treinar modelo",
     use_container_width=True
 ):
 
-    if model_type == "SVM":
-        selected_model = "svm"
+    if selected_model == "Support Vector Machine (SVM)":
+        model_type = "svm"
     else:
-        selected_model = "logistic"
+        model_type = "logistic"
 
-
-    with st.spinner(
-        f"Treinando {model_type}..."
-    ):
+    with st.spinner("Treinando modelo..."):
 
         model, metrics, artifacts = train_model(
-
-            df,
-
+            df=df,
             test_size=test_size,
-
-            model_type=selected_model,
-
+            model_type=model_type,
             svm_c=svm_c,
-
             svm_kernel=svm_kernel,
-
             svm_gamma=svm_gamma
         )
 
+    # ======================================================
+    # SALVAR RESULTADOS NA SESSION
+    # ======================================================
 
-    # ======================================
-    # RESULTADOS
-    # ======================================
+    st.session_state["ml_model"] = model
+    st.session_state["ml_metrics"] = metrics
+    st.session_state["ml_artifacts"] = artifacts
+    st.session_state["ml_model_name"] = selected_model
+    st.session_state["ml_test_size"] = test_size
+    st.session_state["ml_svm_c"] = svm_c
+    st.session_state["ml_svm_kernel"] = svm_kernel
+    st.session_state["ml_svm_gamma"] = svm_gamma
 
-    st.success(
-        f"{model_type} treinado com sucesso!"
-    )
+
+# ==========================================================
+# MOSTRAR RESULTADOS
+# ==========================================================
+
+if "ml_metrics" in st.session_state:
+
+    metrics = st.session_state["ml_metrics"]
+
+    model_name = st.session_state["ml_model_name"]
+
+    saved_test_size = st.session_state["ml_test_size"]
+
+    saved_svm_c = st.session_state["ml_svm_c"]
+
+    saved_svm_kernel = st.session_state["ml_svm_kernel"]
+
+    saved_svm_gamma = st.session_state["ml_svm_gamma"]
 
 
-    st.subheader("📊 Métricas")
+    # ======================================================
+    # MÉTRICAS
+    # ======================================================
+
+    st.markdown("---")
+
+    st.subheader("📊 Resultados")
 
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -395,71 +195,38 @@ if st.button(
     )
 
 
-    st.markdown("---")
-
-pdf = gerar_pdf(
-    metrics=metrics,
-    model_name="Support Vector Machine",
-    test_size=test_size,
-    svm_c=svm_c,
-    svm_kernel=svm_kernel,
-    svm_gamma=svm_gamma
-)
-
-st.download_button(
-    label="📄 Gerar relatório PDF",
-    data=pdf,
-    file_name="breast_insight_svm_relatorio.pdf",
-    mime="application/pdf",
-    use_container_width=True
-)
-
-
-    # ======================================
+    # ======================================================
     # MATRIZ DE CONFUSÃO
-    # ======================================
+    # ======================================================
 
-    st.subheader(
-        "🧩 Matriz de Confusão"
-    )
+    st.subheader("Matriz de confusão")
 
 
     cm = metrics["confusion_matrix"]
 
 
     fig = go.Figure(
-
         data=go.Heatmap(
-
             z=cm,
-
             x=[
                 "Benigno",
                 "Maligno"
             ],
-
             y=[
                 "Benigno",
                 "Maligno"
             ],
-
             text=cm,
-
             texttemplate="%{text}",
-
             colorscale="Blues",
-
             showscale=True
         )
     )
 
 
     fig.update_layout(
-
         title="Matriz de Confusão",
-
         xaxis_title="Classe Predita",
-
         yaxis_title="Classe Real"
     )
 
@@ -470,50 +237,41 @@ st.download_button(
     )
 
 
-    # ======================================
-    # INFORMAÇÕES DO MODELO
-    # ======================================
+    # ======================================================
+    # RELATÓRIO PDF
+    # ======================================================
 
-    st.subheader(
-        "🔍 Configuração utilizada"
+    st.markdown("---")
+
+    st.subheader("📄 Relatório")
+
+
+    pdf = generate_pdf(
+        metrics=metrics,
+        model_name=model_name,
+        test_size=saved_test_size,
+        svm_c=saved_svm_c,
+        svm_kernel=saved_svm_kernel,
+        svm_gamma=saved_svm_gamma
     )
 
 
-    if selected_model == "svm":
-
-        st.write(
-            f"**Modelo:** Support Vector Machine"
-        )
-
-        st.write(
-            f"**Kernel:** `{svm_kernel}`"
-        )
-
-        st.write(
-            f"**C:** `{svm_c}`"
-        )
-
-        st.write(
-            f"**Gamma:** `{svm_gamma}`"
-        )
-
-    else:
-
-        st.write(
-            "**Modelo:** Logistic Regression"
-        )
-
-        st.write(
-            "**Max iterations:** `3000`"
-        )
+    st.download_button(
+        label="📄 Gerar relatório PDF",
+        data=pdf,
+        file_name="breast_insight_ml_relatorio.pdf",
+        mime="application/pdf",
+        use_container_width=True
+    )
 
 
-# ==========================================
+# ==========================================================
 # AVISO
-# ==========================================
+# ==========================================================
+
+st.markdown("---")
 
 st.warning(
-    "Modelo educacional. "
-    "A avaliação não representa validação clínica "
-    "nem autoriza uso diagnóstico."
+    "⚠️ Modelo educacional. Os resultados não representam "
+    "validação clínica e não devem ser utilizados para diagnóstico."
 )
