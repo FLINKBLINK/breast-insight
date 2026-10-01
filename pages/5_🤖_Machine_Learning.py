@@ -569,7 +569,10 @@ if (
 # PCA + SVM
 # ======================================================
 
-if model_name == "Support Vector Machine (SVM)":
+if (
+    "ml_metrics" in st.session_state
+    and st.session_state.get("ml_model_name") == "Support Vector Machine (SVM)"
+):
 
     st.markdown("---")
 
