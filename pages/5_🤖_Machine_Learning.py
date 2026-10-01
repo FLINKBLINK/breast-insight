@@ -161,6 +161,13 @@ if "ml_metrics" in st.session_state:
 
     artifacts = st.session_state["ml_artifacts"]
 
+    # ======================================================
+    # REFERÊNCIAS DOS GRÁFICOS PARA O PDF
+    # ======================================================
+
+    fig_boundary = None
+    fig_pca = None
+
 
     # ======================================================
     # MÉTRICAS
@@ -713,7 +720,9 @@ if "ml_metrics" in st.session_state:
         test_size=saved_test_size,
         svm_c=saved_svm_c,
         svm_kernel=saved_svm_kernel,
-        svm_gamma=saved_svm_gamma
+        svm_gamma=saved_svm_gamma,
+        fig_boundary=fig_boundary,
+        fig_pca=fig_pca
     )
 
 
