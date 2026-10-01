@@ -4,6 +4,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.enums import TA_CENTER
+
 from reportlab.platypus import (
 SimpleDocTemplate,
 Paragraph,
@@ -24,12 +25,11 @@ svm_gamma=None,
 fig_boundary=None,
 fig_pca=None
 ):
-
-```
 buffer = BytesIO()
 
+```
 # ==========================================================
-# DOCUMENTO
+# CONFIGURAÇÃO DO DOCUMENTO
 # ==========================================================
 
 doc = SimpleDocTemplate(
@@ -42,7 +42,6 @@ doc = SimpleDocTemplate(
 )
 
 styles = getSampleStyleSheet()
-
 styles["Title"].alignment = TA_CENTER
 
 story = []
@@ -109,30 +108,15 @@ if model_name == "Support Vector Machine (SVM)":
     )
 
     svm_data = [
-        [
-            "Parâmetro",
-            "Valor"
-        ],
-        [
-            "C",
-            str(svm_c)
-        ],
-        [
-            "Kernel",
-            str(svm_kernel)
-        ],
-        [
-            "Gamma",
-            str(svm_gamma)
-        ]
+        ["Parâmetro", "Valor"],
+        ["C", str(svm_c)],
+        ["Kernel", str(svm_kernel)],
+        ["Gamma", str(svm_gamma)]
     ]
 
     table = Table(
         svm_data,
-        colWidths=[
-            180,
-            270
-        ]
+        colWidths=[180, 270]
     )
 
     table.setStyle(
@@ -195,38 +179,17 @@ story.append(
 )
 
 metrics_data = [
-    [
-        "Métrica",
-        "Resultado"
-    ],
-    [
-        "Accuracy",
-        f"{metrics['accuracy']:.3%}"
-    ],
-    [
-        "Precision",
-        f"{metrics['precision']:.3%}"
-    ],
-    [
-        "Recall",
-        f"{metrics['recall']:.3%}"
-    ],
-    [
-        "F1-Score",
-        f"{metrics['f1']:.3%}"
-    ],
-    [
-        "ROC-AUC",
-        f"{metrics['roc_auc']:.3%}"
-    ]
+    ["Métrica", "Resultado"],
+    ["Accuracy", f"{metrics['accuracy']:.3%}"],
+    ["Precision", f"{metrics['precision']:.3%}"],
+    ["Recall", f"{metrics['recall']:.3%}"],
+    ["F1-Score", f"{metrics['f1']:.3%}"],
+    ["ROC-AUC", f"{metrics['roc_auc']:.3%}"]
 ]
 
 table = Table(
     metrics_data,
-    colWidths=[
-        250,
-        200
-    ]
+    colWidths=[250, 200]
 )
 
 table.setStyle(
@@ -291,30 +254,14 @@ story.append(
 cm = metrics["confusion_matrix"]
 
 cm_data = [
-    [
-        "",
-        "Predito: Benigno",
-        "Predito: Maligno"
-    ],
-    [
-        "Real: Benigno",
-        str(cm[0][0]),
-        str(cm[0][1])
-    ],
-    [
-        "Real: Maligno",
-        str(cm[1][0]),
-        str(cm[1][1])
-    ]
+    ["", "Predito: Benigno", "Predito: Maligno"],
+    ["Real: Benigno", str(cm[0][0]), str(cm[0][1])],
+    ["Real: Maligno", str(cm[1][0]), str(cm[1][1])]
 ]
 
 table = Table(
     cm_data,
-    colWidths=[
-        150,
-        150,
-        150
-    ]
+    colWidths=[150, 150, 150]
 )
 
 table.setStyle(
@@ -383,9 +330,9 @@ story.append(
 
 if model_name == "Support Vector Machine (SVM)":
 
-    # ------------------------------------------------------
+    # ======================================================
     # GRÁFICO 1 - FRONTEIRA DE DECISÃO
-    # ------------------------------------------------------
+    # ======================================================
 
     if fig_boundary is not None:
 
@@ -438,15 +385,15 @@ if model_name == "Support Vector Machine (SVM)":
 
             story.append(
                 Paragraph(
-                    f"<b>Não foi possível inserir o gráfico "
-                    f"de fronteira no PDF:</b> {str(e)}",
+                    f"Não foi possível inserir o gráfico "
+                    f"de fronteira no PDF: {str(e)}",
                     styles["BodyText"]
                 )
             )
 
-    # ------------------------------------------------------
+    # ======================================================
     # GRÁFICO 2 - PCA + SVM
-    # ------------------------------------------------------
+    # ======================================================
 
     if fig_pca is not None:
 
@@ -500,14 +447,14 @@ if model_name == "Support Vector Machine (SVM)":
 
             story.append(
                 Paragraph(
-                    f"<b>Não foi possível inserir o gráfico "
-                    f"PCA no PDF:</b> {str(e)}",
+                    f"Não foi possível inserir o gráfico "
+                    f"PCA no PDF: {str(e)}",
                     styles["BodyText"]
                 )
             )
 
 # ==========================================================
-# INTERPRETAÇÃO
+# RESUMO DA MATRIZ DE CONFUSÃO
 # ==========================================================
 
 tn = cm[0][0]
@@ -628,7 +575,7 @@ story.append(
 )
 
 # ==========================================================
-# GERAR PDF
+# GERAÇÃO DO PDF
 # ==========================================================
 
 doc.build(story)
