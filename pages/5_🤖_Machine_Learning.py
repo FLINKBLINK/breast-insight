@@ -1,5 +1,10 @@
 import streamlit as st
 import plotly.graph_objects as go
+import numpy as np
+
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 
 from services.data_service import load_data
 from machine_learning.model import train_model
@@ -14,8 +19,8 @@ st.title("🤖 Machine Learning")
 
 st.markdown(
     """
-    Esta página permite treinar modelos de classificação
-    para os dados de câncer de mama.
+    Esta página permite treinar modelos de classificação para
+    identificar diagnósticos benignos e malignos.
     """
 )
 
@@ -28,7 +33,7 @@ df = load_data()
 
 
 # ==========================================================
-# CONFIGURAÇÕES DO MODELO
+# CONFIGURAÇÕES
 # ==========================================================
 
 st.subheader("⚙️ Configurações")
@@ -53,7 +58,7 @@ test_size = st.slider(
 
 
 # ==========================================================
-# CONFIGURAÇÕES SVM
+# CONFIGURAÇÕES DO SVM
 # ==========================================================
 
 svm_c = 1.0
@@ -71,7 +76,7 @@ if selected_model == "Support Vector Machine (SVM)":
         max_value=100.0,
         value=1.0,
         step=0.1,
-        help="Parâmetro de regularização do SVM."
+        help="Controla a penalização dos erros de classificação."
     )
 
     svm_kernel = st.selectbox(
@@ -82,7 +87,8 @@ if selected_model == "Support Vector Machine (SVM)":
             "poly",
             "sigmoid"
         ],
-        index=0
+        index=0,
+        help="Define o tipo de fronteira utilizada pelo SVM."
     )
 
     svm_gamma = st.selectbox(
@@ -91,7 +97,8 @@ if selected_model == "Support Vector Machine (SVM)":
             "scale",
             "auto"
         ],
-        index=0
+        index=0,
+        help="Controla a influência de cada observação na fronteira."
     )
 
 
@@ -121,7 +128,7 @@ if st.button(
         )
 
     # ======================================================
-    # SALVAR RESULTADOS NA SESSION
+    # SALVAR RESULTADOS
     # ======================================================
 
     st.session_state["ml_model"] = model
@@ -135,7 +142,7 @@ if st.button(
 
 
 # ==========================================================
-# MOSTRAR RESULTADOS
+# RESULTADOS
 # ==========================================================
 
 if "ml_metrics" in st.session_state:
@@ -151,6 +158,8 @@ if "ml_metrics" in st.session_state:
     saved_svm_kernel = st.session_state["ml_svm_kernel"]
 
     saved_svm_gamma = st.session_state["ml_svm_gamma"]
+
+    artifacts = st.session_state["ml_artifacts"]
 
 
     # ======================================================
@@ -199,13 +208,13 @@ if "ml_metrics" in st.session_state:
     # MATRIZ DE CONFUSÃO
     # ======================================================
 
-    st.subheader("Matriz de confusão")
+    st.subheader("🔢 Matriz de Confusão")
 
 
     cm = metrics["confusion_matrix"]
 
 
-    fig = go.Figure(
+    fig_cm = go.Figure(
         data=go.Heatmap(
             z=cm,
             x=[
@@ -224,7 +233,7 @@ if "ml_metrics" in st.session_state:
     )
 
 
-    fig.update_layout(
+    fig_cm.update_layout(
         title="Matriz de Confusão",
         xaxis_title="Classe Predita",
         yaxis_title="Classe Real"
@@ -232,9 +241,461 @@ if "ml_metrics" in st.session_state:
 
 
     st.plotly_chart(
-        fig,
+        fig_cm,
         use_container_width=True
     )
+
+
+    # ======================================================
+    # GRÁFICO 1
+    # SVM COM DUAS CARACTERÍSTICAS
+    # ======================================================
+
+    if model_name == "Support Vector Machine (SVM)":
+
+        st.markdown("---")
+
+        st.subheader(
+            "🎯 Fronteira de decisão do SVM"
+        )
+
+        st.markdown(
+            """
+            Este gráfico mostra visualmente como o SVM separa
+            as duas classes utilizando duas características
+            do conjunto de dados.
+            """
+        )
+
+
+        feature_x = "radius_mean"
+        feature_y = "texture_mean"
+
+
+        if (
+            feature_x in df.columns
+            and feature_y in df.columns
+        ):
+
+            # --------------------------------------------------
+            # DADOS
+            # --------------------------------------------------
+
+            X_plot = df[
+                [
+                    feature_x,
+                    feature_y
+                ]
+            ].copy()
+
+
+            y_plot = df["diagnosis"]
+
+
+            # --------------------------------------------------
+            # TREINAR SVM APENAS PARA VISUALIZAÇÃO
+            # --------------------------------------------------
+
+            scaler_plot = StandardScaler()
+
+
+            X_scaled = scaler_plot.fit_transform(
+                X_plot
+            )
+
+
+            svm_plot = SVC(
+                C=saved_svm_c,
+                kernel=saved_svm_kernel,
+                gamma=saved_svm_gamma
+            )
+
+
+            svm_plot.fit(
+                X_scaled,
+                y_plot
+            )
+
+
+            # --------------------------------------------------
+            # GRID PARA DESENHAR AS REGIÕES
+            # --------------------------------------------------
+
+            x_min = X_scaled[:, 0].min() - 1
+            x_max = X_scaled[:, 0].max() + 1
+
+            y_min = X_scaled[:, 1].min() - 1
+            y_max = X_scaled[:, 1].max() + 1
+
+
+            xx, yy = np.meshgrid(
+                np.linspace(
+                    x_min,
+                    x_max,
+                    250
+                ),
+                np.linspace(
+                    y_min,
+                    y_max,
+                    250
+                )
+            )
+
+
+            grid = np.c_[
+                xx.ravel(),
+                yy.ravel()
+            ]
+
+
+            Z = svm_plot.predict(
+                grid
+            )
+
+
+            Z = Z.reshape(
+                xx.shape
+            )
+
+
+            # --------------------------------------------------
+            # GRÁFICO
+            # --------------------------------------------------
+
+            fig_boundary = go.Figure()
+
+
+            # Região de decisão
+            fig_boundary.add_trace(
+                go.Contour(
+                    x=np.linspace(
+                        x_min,
+                        x_max,
+                        250
+                    ),
+                    y=np.linspace(
+                        y_min,
+                        y_max,
+                        250
+                    ),
+                    z=Z,
+                    showscale=False,
+                    opacity=0.25,
+                    contours=dict(
+                        coloring="fill"
+                    ),
+                    hoverinfo="skip"
+                )
+            )
+
+
+            # --------------------------------------------------
+            # PONTOS BENIGNOS
+            # --------------------------------------------------
+
+            benign = y_plot == 0
+
+
+            fig_boundary.add_trace(
+                go.Scatter(
+                    x=X_scaled[benign, 0],
+                    y=X_scaled[benign, 1],
+                    mode="markers",
+                    name="Benigno",
+                    marker=dict(
+                        size=7,
+                        symbol="circle"
+                    )
+                )
+            )
+
+
+            # --------------------------------------------------
+            # PONTOS MALIGNOS
+            # --------------------------------------------------
+
+            malignant = y_plot == 1
+
+
+            fig_boundary.add_trace(
+                go.Scatter(
+                    x=X_scaled[malignant, 0],
+                    y=X_scaled[malignant, 1],
+                    mode="markers",
+                    name="Maligno",
+                    marker=dict(
+                        size=7,
+                        symbol="x"
+                    )
+                )
+            )
+
+
+            fig_boundary.update_layout(
+                title=(
+                    "Divisão das classes pelo SVM — "
+                    "Radius × Texture"
+                ),
+                xaxis_title=feature_x,
+                yaxis_title=feature_y,
+                height=600
+            )
+
+
+            st.plotly_chart(
+                fig_boundary,
+                use_container_width=True
+            )
+
+
+            st.caption(
+                "Cada ponto representa uma amostra. "
+                "As regiões do gráfico representam a classe "
+                "predita pelo SVM."
+            )
+
+
+    # ======================================================
+    # GRÁFICO 2
+    # PCA + SVM
+    # ======================================================
+
+    if model_name == "Support Vector Machine (SVM)":
+
+        st.markdown("---")
+
+        st.subheader(
+            "🧬 Visualização multivariada — PCA"
+        )
+
+        st.markdown(
+            """
+            O PCA reduz as características do conjunto de dados
+            para duas dimensões, permitindo visualizar como os
+            grupos benigno e maligno se distribuem.
+            """
+        )
+
+
+        # --------------------------------------------------
+        # PREPARAR DADOS
+        # --------------------------------------------------
+
+        ignored_columns = [
+            "id",
+            "diagnosis",
+            "diagnosis_label"
+        ]
+
+
+        feature_columns = [
+            column
+            for column in df.columns
+            if column not in ignored_columns
+        ]
+
+
+        X_all = df[
+            feature_columns
+        ].copy()
+
+
+        y_all = df[
+            "diagnosis"
+        ]
+
+
+        # --------------------------------------------------
+        # STANDARD SCALER
+        # --------------------------------------------------
+
+        scaler_pca = StandardScaler()
+
+
+        X_scaled_pca = scaler_pca.fit_transform(
+            X_all
+        )
+
+
+        # --------------------------------------------------
+        # PCA
+        # --------------------------------------------------
+
+        pca = PCA(
+            n_components=2
+        )
+
+
+        X_pca = pca.fit_transform(
+            X_scaled_pca
+        )
+
+
+        # --------------------------------------------------
+        # SVM NO ESPAÇO PCA
+        # --------------------------------------------------
+
+        svm_pca = SVC(
+            C=saved_svm_c,
+            kernel=saved_svm_kernel,
+            gamma=saved_svm_gamma
+        )
+
+
+        svm_pca.fit(
+            X_pca,
+            y_all
+        )
+
+
+        # --------------------------------------------------
+        # GRID
+        # --------------------------------------------------
+
+        x_min = X_pca[:, 0].min() - 1
+        x_max = X_pca[:, 0].max() + 1
+
+        y_min = X_pca[:, 1].min() - 1
+        y_max = X_pca[:, 1].max() + 1
+
+
+        xx, yy = np.meshgrid(
+            np.linspace(
+                x_min,
+                x_max,
+                300
+            ),
+            np.linspace(
+                y_min,
+                y_max,
+                300
+            )
+        )
+
+
+        grid_pca = np.c_[
+            xx.ravel(),
+            yy.ravel()
+        ]
+
+
+        Z_pca = svm_pca.predict(
+            grid_pca
+        )
+
+
+        Z_pca = Z_pca.reshape(
+            xx.shape
+        )
+
+
+        # --------------------------------------------------
+        # GRÁFICO PCA
+        # --------------------------------------------------
+
+        fig_pca = go.Figure()
+
+
+        # Regiões de decisão
+        fig_pca.add_trace(
+            go.Contour(
+                x=np.linspace(
+                    x_min,
+                    x_max,
+                    300
+                ),
+                y=np.linspace(
+                    y_min,
+                    y_max,
+                    300
+                ),
+                z=Z_pca,
+                showscale=False,
+                opacity=0.25,
+                contours=dict(
+                    coloring="fill"
+                ),
+                hoverinfo="skip"
+            )
+        )
+
+
+        # --------------------------------------------------
+        # BENIGNOS
+        # --------------------------------------------------
+
+        benign_pca = y_all == 0
+
+
+        fig_pca.add_trace(
+            go.Scatter(
+                x=X_pca[benign_pca, 0],
+                y=X_pca[benign_pca, 1],
+                mode="markers",
+                name="Benigno",
+                marker=dict(
+                    size=7,
+                    symbol="circle"
+                )
+            )
+        )
+
+
+        # --------------------------------------------------
+        # MALIGNOS
+        # --------------------------------------------------
+
+        malignant_pca = y_all == 1
+
+
+        fig_pca.add_trace(
+            go.Scatter(
+                x=X_pca[malignant_pca, 0],
+                y=X_pca[malignant_pca, 1],
+                mode="markers",
+                name="Maligno",
+                marker=dict(
+                    size=7,
+                    symbol="x"
+                )
+            )
+        )
+
+
+        # --------------------------------------------------
+        # VARIÂNCIA EXPLICADA
+        # --------------------------------------------------
+
+        variance_1 = pca.explained_variance_ratio_[0] * 100
+
+        variance_2 = pca.explained_variance_ratio_[1] * 100
+
+
+        fig_pca.update_layout(
+            title="Separação das classes utilizando PCA + SVM",
+            xaxis_title=(
+                f"Componente Principal 1 "
+                f"({variance_1:.1f}% da variância)"
+            ),
+            yaxis_title=(
+                f"Componente Principal 2 "
+                f"({variance_2:.1f}% da variância)"
+            ),
+            height=600
+        )
+
+
+        st.plotly_chart(
+            fig_pca,
+            use_container_width=True
+        )
+
+
+        st.caption(
+            "O PCA transforma as características originais "
+            "em duas componentes principais para permitir "
+            "a visualização dos dados em duas dimensões."
+        )
 
 
     # ======================================================
