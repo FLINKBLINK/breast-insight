@@ -44,8 +44,14 @@ streamlit run app.py
 
 Abra a página `Database` e clique em `Importar CSV para SQLite`.
 
-## 5. Observação estatística
+## 5. Análises disponíveis
 
-O Bootstrap implementado estima a diferença entre as médias do grupo maligno e benigno, usando reamostragem com reposição. O intervalo padrão é calculado por percentis.
+- **Machine Learning:** modelos supervisionados para fins educacionais.
+- **DBSCAN:** agrupamento não supervisionado com padronização das variáveis, gráfico k-distance para auxiliar a escolha de `eps`, visualização com PCA, contagem de grupos e ruído e comparação exploratória posterior com o diagnóstico original.
+- **Bootstrap:** estima a diferença entre as médias dos grupos maligno e benigno por reamostragem com reposição; o intervalo padrão é calculado por percentis.
 
-O modelo de Machine Learning é educacional e não deve ser usado para diagnóstico clínico.
+Na página DBSCAN, a coluna de diagnóstico não é utilizada para formar os grupos. O gráfico k-distance auxilia a selecionar `eps`; ele não é o mesmo que o cotovelo de WSS do K-Means.
+
+## 6. Aviso
+
+O projeto é educacional. Resultados de modelos e agrupamentos não constituem diagnóstico nem validação clínica e não devem ser utilizados para decisões médicas.
