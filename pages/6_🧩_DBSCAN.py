@@ -139,12 +139,15 @@ if st.button("▶️ Executar DBSCAN", type="primary", use_container_width=True)
         model = DBSCAN(eps=float(eps), min_samples=int(min_samples))
         labels = model.fit_predict(X_scaled)
 
-        pca = PCA(n_components=2, random_state=42)
+        # PCA com três componentes para permitir a inspeção interativa em 3D.
+        # O DBSCAN continua sendo ajustado sobre todas as variáveis padronizadas.
+        pca = PCA(n_components=3, random_state=42)
         X_pca = pca.fit_transform(X_scaled)
 
         results = pd.DataFrame({
             "Componente principal 1": X_pca[:, 0],
             "Componente principal 2": X_pca[:, 1],
+            "Componente principal 3": X_pca[:, 2],
             "Grupo": labels.astype(int)
         })
         results["Grupo visual"] = results["Grupo"].map(
@@ -192,25 +195,44 @@ if "dbscan_results" in st.session_state:
             "gráfico k-distance para investigar se há uma separação mais informativa."
         )
 
-    fig_clusters = px.scatter(
+    st.markdown(
+        """
+        Gire o gráfico com o mouse, aproxime/afaste o zoom e passe o cursor sobre os
+        pontos para consultar as componentes e o rótulo do grupo. Cada cor representa
+        um grupo; os pontos classificados como ruído aparecem separados na legenda.
+        """
+    )
+    fig_clusters = px.scatter_3d(
         results,
         x="Componente principal 1",
         y="Componente principal 2",
+        z="Componente principal 3",
         color="Grupo visual",
         hover_data={"Grupo": True},
-        title="Grupos DBSCAN visualizados com PCA",
+        title="Visualização interativa 3D dos grupos DBSCAN (PCA)",
         labels={
-            "Componente principal 1": f"Componente 1 ({variance[0] * 100:.1f}% da variância)",
-            "Componente principal 2": f"Componente 2 ({variance[1] * 100:.1f}% da variância)"
+            "Componente principal 1": f"CP1 ({variance[0] * 100:.1f}%)",
+            "Componente principal 2": f"CP2 ({variance[1] * 100:.1f}%)",
+            "Componente principal 3": f"CP3 ({variance[2] * 100:.1f}%)"
         }
     )
-    fig_clusters.update_traces(marker={"size": 8, "opacity": 0.8})
-    fig_clusters.update_layout(height=560)
+    fig_clusters.update_traces(marker={"size": 5, "opacity": 0.82})
+    fig_clusters.update_layout(
+        height=700,
+        scene={
+            "xaxis_title": f"CP1 ({variance[0] * 100:.1f}% variância)",
+            "yaxis_title": f"CP2 ({variance[1] * 100:.1f}% variância)",
+            "zaxis_title": f"CP3 ({variance[2] * 100:.1f}% variância)",
+            "aspectmode": "data"
+        },
+        legend_title_text="Grupo DBSCAN"
+    )
     st.plotly_chart(fig_clusters, use_container_width=True)
 
     st.caption(
-        "O PCA reduz as variáveis para duas dimensões apenas para facilitar a visualização. "
-        "O DBSCAN foi aplicado aos dados padronizados completos, não apenas às duas componentes."
+        "O PCA projeta os dados em três dimensões para facilitar a inspeção visual. "
+        "O DBSCAN foi ajustado sobre todas as variáveis numéricas padronizadas, "
+        "não apenas sobre as três componentes exibidas."
     )
 
     counts = (
