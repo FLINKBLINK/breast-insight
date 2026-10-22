@@ -169,6 +169,31 @@ if st.button("▶️ Executar DBSCAN", type="primary", use_container_width=True)
         st.session_state["dbscan_variance"] = pca.explained_variance_ratio_
         st.session_state["dbscan_noise_pct"] = noise_pct
 
+# Invalida resultados de sessões antigas que ainda não tinham as três componentes do PCA.
+# O Streamlit preserva session_state durante reruns, inclusive após mudanças no código.
+required_result_columns = {
+    "Componente principal 1",
+    "Componente principal 2",
+    "Componente principal 3",
+    "Grupo",
+    "Grupo visual",
+}
+if "dbscan_results" in st.session_state:
+    cached_results = st.session_state["dbscan_results"]
+    if not isinstance(cached_results, pd.DataFrame) or not required_result_columns.issubset(cached_results.columns):
+        for cache_key in (
+            "dbscan_results",
+            "dbscan_labels",
+            "dbscan_n_clusters",
+            "dbscan_n_noise",
+            "dbscan_eps",
+            "dbscan_min_samples",
+            "dbscan_variance",
+            "dbscan_noise_pct",
+        ):
+            st.session_state.pop(cache_key, None)
+        st.info("A visualização anterior estava em formato 2D. Os resultados antigos foram descartados; clique em **Executar DBSCAN** novamente para gerar o gráfico 3D.")
+
 if "dbscan_results" in st.session_state:
     results = st.session_state["dbscan_results"]
     labels = st.session_state["dbscan_labels"]
