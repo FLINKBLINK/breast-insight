@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import streamlit as st
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
@@ -139,12 +140,15 @@ if st.button("▶️ Executar DBSCAN", type="primary", use_container_width=True)
         model = DBSCAN(eps=float(eps), min_samples=int(min_samples))
         labels = model.fit_predict(X_scaled)
 
-        pca = PCA(n_components=2, random_state=42)
+        # PCA com três componentes para permitir a inspeção interativa em 3D.
+        # O DBSCAN continua sendo ajustado sobre todas as variáveis padronizadas.
+        pca = PCA(n_components=3, random_state=42)
         X_pca = pca.fit_transform(X_scaled)
 
         results = pd.DataFrame({
             "Componente principal 1": X_pca[:, 0],
             "Componente principal 2": X_pca[:, 1],
+            "Componente principal 3": X_pca[:, 2],
             "Grupo": labels.astype(int)
         })
         results["Grupo visual"] = results["Grupo"].map(
@@ -192,25 +196,75 @@ if "dbscan_results" in st.session_state:
             "gráfico k-distance para investigar se há uma separação mais informativa."
         )
 
-    fig_clusters = px.scatter(
-        results,
-        x="Componente principal 1",
-        y="Componente principal 2",
-        color="Grupo visual",
-        hover_data={"Grupo": True},
-        title="Grupos DBSCAN visualizados com PCA",
-        labels={
-            "Componente principal 1": f"Componente 1 ({variance[0] * 100:.1f}% da variância)",
-            "Componente principal 2": f"Componente 2 ({variance[1] * 100:.1f}% da variância)"
+    st.markdown(
+        """
+        O gráfico abaixo usa uma cena 3D real com os eixos CP1, CP2 e CP3. Arraste com o mouse para girar a câmera, use o scroll para aproximar/afastar e passe o cursor sobre os pontos. Cada cor representa um grupo; o ruído aparece na legenda.
+        """
+    )
+    # Renderiza explicitamente uma cena 3D com Scatter3d (eixos X, Y e Z).
+    # O gráfico só é gerado após clicar em "Executar DBSCAN".
+    fig_clusters = go.Figure()
+    for grupo in results["Grupo visual"].drop_duplicates().tolist():
+        subset = results[results["Grupo visual"] == grupo]
+        fig_clusters.add_trace(
+            go.Scatter3d(
+                x=subset["Componente principal 1"],
+                y=subset["Componente principal 2"],
+                z=subset["Componente principal 3"],
+                mode="markers",
+                name=grupo,
+                marker={
+                    "size": 4,
+                    "opacity": 0.85
+                },
+                customdata=subset[["Grupo"]].to_numpy(),
+                hovertemplate=(
+                    "CP1: %{x:.3f}<br>"
+                    "CP2: %{y:.3f}<br>"
+                    "CP3: %{z:.3f}<br>"
+                    "Grupo DBSCAN: %{customdata[0]}<extra></extra>"
+                )
+            )
+        )
+
+    fig_clusters.update_layout(
+        title="Visualização interativa 3D dos grupos DBSCAN (PCA)",
+        height=800,
+        margin={"l": 0, "r": 0, "t": 60, "b": 0},
+        scene={
+            "xaxis": {
+                "title": f"CP1 ({variance[0] * 100:.1f}% variância)",
+                "showbackground": True
+            },
+            "yaxis": {
+                "title": f"CP2 ({variance[1] * 100:.1f}% variância)",
+                "showbackground": True
+            },
+            "zaxis": {
+                "title": f"CP3 ({variance[2] * 100:.1f}% variância)",
+                "showbackground": True
+            },
+            "aspectmode": "cube",
+            "camera": {
+                "eye": {"x": 1.6, "y": 1.6, "z": 1.3}
+            }
+        },
+        legend_title_text="Grupo DBSCAN"
+    )
+    st.plotly_chart(
+        fig_clusters,
+        use_container_width=True,
+        config={
+            "displayModeBar": True,
+            "scrollZoom": True,
+            "responsive": True
         }
     )
-    fig_clusters.update_traces(marker={"size": 8, "opacity": 0.8})
-    fig_clusters.update_layout(height=560)
-    st.plotly_chart(fig_clusters, use_container_width=True)
 
     st.caption(
-        "O PCA reduz as variáveis para duas dimensões apenas para facilitar a visualização. "
-        "O DBSCAN foi aplicado aos dados padronizados completos, não apenas às duas componentes."
+        "O PCA projeta os dados em três dimensões para facilitar a inspeção visual. "
+        "O DBSCAN foi ajustado sobre todas as variáveis numéricas padronizadas, "
+        "não apenas sobre as três componentes exibidas."
     )
 
     counts = (
