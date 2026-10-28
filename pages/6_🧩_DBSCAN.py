@@ -230,7 +230,15 @@ if "dbscan_results" in st.session_state:
     # Renderiza explicitamente uma cena 3D com Scatter3d (eixos X, Y e Z).
     # O gráfico só é gerado após clicar em "Executar DBSCAN".
     fig_clusters = go.Figure()
-    for grupo in results["Grupo visual"].drop_duplicates().tolist():
+    # Paleta com cores distintas para os grupos; ruído sempre em cinza.
+    cluster_palette = px.colors.qualitative.Bold
+    group_labels = results["Grupo visual"].drop_duplicates().tolist()
+    cluster_color_map = {"Ruído (−1)": "#7A7A7A"}
+    non_noise_groups = [grupo for grupo in group_labels if grupo != "Ruído (−1)"]
+    for index, grupo in enumerate(non_noise_groups):
+        cluster_color_map[grupo] = cluster_palette[index % len(cluster_palette)]
+
+    for grupo in group_labels:
         subset = results[results["Grupo visual"] == grupo]
         fig_clusters.add_trace(
             go.Scatter3d(
@@ -241,7 +249,8 @@ if "dbscan_results" in st.session_state:
                 name=grupo,
                 marker={
                     "size": 4,
-                    "opacity": 0.85
+                    "opacity": 0.85,
+                    "color": cluster_color_map[grupo]
                 },
                 customdata=subset[["Grupo"]].to_numpy(),
                 hovertemplate=(
