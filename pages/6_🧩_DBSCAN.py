@@ -10,6 +10,7 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
 from services.data_service import load_data
+from machine_learning.dbscan_pdf_report import generate_dbscan_pdf
 
 
 st.title("🧩 Agrupamento com DBSCAN")
@@ -306,6 +307,7 @@ if "dbscan_results" in st.session_state:
     st.dataframe(counts, use_container_width=True, hide_index=True)
 
     # Diagnóstico é consultado apenas após o agrupamento, nunca como entrada do DBSCAN.
+    diagnosis_comparison = None
     if "diagnosis" in df.columns:
         st.subheader("5. Comparação exploratória com o diagnóstico original")
         st.markdown(
@@ -324,6 +326,7 @@ if "dbscan_results" in st.session_state:
             comparison["Diagnóstico original"],
             margins=True
         )
+        diagnosis_comparison = cross_tab
         st.dataframe(cross_tab, use_container_width=True)
 
     st.subheader("Interpretação")
@@ -349,6 +352,57 @@ if "dbscan_results" in st.session_state:
         mime="text/csv",
         use_container_width=True
     )
+
+    st.markdown("---")
+    st.subheader("📄 Relatório em PDF")
+    st.caption(
+        "O relatório inclui o método k-distance, os parâmetros utilizados, "
+        "a visualização 3D dos agrupamentos e tabelas com os resultados."
+    )
+
+    if st.button("Gerar relatório PDF do DBSCAN", type="primary", use_container_width=True):
+        try:
+            with st.spinner("Montando o relatório PDF..."):
+                pdf_bytes = generate_dbscan_pdf(
+                    records_count=len(df),
+                    feature_count=len(numeric_df.columns),
+                    missing_count=int(numeric_df.isna().sum().sum()),
+                    feature_names=numeric_df.columns.tolist(),
+                    eps=float(st.session_state["dbscan_eps"]),
+                    min_samples=int(st.session_state["dbscan_min_samples"]),
+                    n_clusters=int(n_clusters),
+                    n_noise=int(n_noise),
+                    noise_pct=float(st.session_state["dbscan_noise_pct"]),
+                    variance=variance,
+                    k_distance_figure=fig_kdist,
+                    cluster_figure=fig_clusters,
+                    cluster_counts=counts,
+                    diagnosis_comparison=diagnosis_comparison,
+                )
+                st.session_state["dbscan_pdf_bytes"] = pdf_bytes
+                st.session_state["dbscan_pdf_signature"] = (
+                    float(st.session_state["dbscan_eps"]),
+                    int(st.session_state["dbscan_min_samples"]),
+                )
+            st.success("Relatório PDF preparado.")
+        except Exception as exc:
+            st.error(f"Não foi possível gerar o PDF: {exc}")
+
+    current_signature = (
+        float(st.session_state["dbscan_eps"]),
+        int(st.session_state["dbscan_min_samples"]),
+    )
+    if (
+        "dbscan_pdf_bytes" in st.session_state
+        and st.session_state.get("dbscan_pdf_signature") == current_signature
+    ):
+        st.download_button(
+            "⬇️ Baixar relatório DBSCAN (PDF)",
+            data=st.session_state["dbscan_pdf_bytes"],
+            file_name="breast_insight_dbscan_relatorio.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+        )
 
 st.markdown("---")
 st.warning(
