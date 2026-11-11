@@ -9,9 +9,9 @@ _UNIVERSE = np.linspace(0.0, 100.0, 1001)
 
 def clean_review(text):
     text = html.unescape(str(text))
-    text = re.sub(r"<br\\s*/?>", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"<br\s*/?>", " ", text, flags=re.IGNORECASE)
     text = re.sub(r"<[^>]+>", " ", text)
-    return re.sub(r"\\s+", " ", text).strip()
+    return re.sub(r"\s+", " ", text).strip()
 
 def _triangle(x, a, b, c):
     if x <= a or x >= c:
@@ -23,7 +23,7 @@ def _triangle(x, a, b, c):
     return (c - x) / (c - b) if c != b else 1.0
 
 def _trapezoid(x, a, b, c, d):
-    if x <= a or x >= d:
+    if x < a or x > d:
         return 0.0
     if b <= x <= c:
         return 1.0
