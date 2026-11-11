@@ -64,7 +64,7 @@ armazenado em um SQLite próprio: `data/imdb_sentiment.db`.
 3. Escolha o tamanho da amostra e execute a inferência fuzzy.
 4. Consulte as métricas, matriz de confusão, distribuição do índice fuzzy e teste textos individuais.
 
-O módulo combina o escore de polaridade e a intensidade lexical do VADER com
+O módulo combina o escore de polaridade e a intensidade lexical do VADER (escalada para o universo fuzzy) com
 regras fuzzy Mamdani e defuzzificação pelo centroide. As funções de pertinência
 são parâmetros didáticos e devem ser avaliadas/ajustadas em dados de desenvolvimento
 antes de qualquer conclusão sobre desempenho.
