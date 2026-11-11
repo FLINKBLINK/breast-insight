@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.metrics import f1_score, precision_score, recall_score
+from sklearn.model_selection import train_test_split
 
 from data.imdb_ingestion import import_imdb_dataset
 from database.imdb_connection import get_imdb_engine, imdb_table_exists, test_imdb_connection
@@ -84,7 +85,12 @@ sample_limit = st.select_slider(
     format_func=lambda value: f"{value:,}".replace(",", "."),
 )
 if st.button("Executar análise fuzzy", type="primary"):
-    sample = df.head(int(sample_limit)).copy()
+    sample, _ = train_test_split(
+        df,
+        train_size=int(sample_limit),
+        stratify=df["sentiment"],
+        random_state=42,
+    )
     with st.spinner("Calculando polaridade e inferência fuzzy..."):
         st.session_state["imdb_fuzzy_results"] = analyze_dataset(sample)
 
