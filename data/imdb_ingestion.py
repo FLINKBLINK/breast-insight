@@ -28,5 +28,5 @@ def prepare_imdb_dataset(source):
 def import_imdb_dataset(source):
     df = prepare_imdb_dataset(source)
     df.to_sql("imdb_reviews", get_imdb_engine(), if_exists="replace",
-              index=False, chunksize=1000, method="multi")
+              index=False, chunksize=300, method="multi")
     return df
