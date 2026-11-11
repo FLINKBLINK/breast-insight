@@ -52,6 +52,30 @@ Abra a página `Database` e clique em `Importar CSV para SQLite`.
 
 Na página DBSCAN, a coluna de diagnóstico não é utilizada para formar os grupos. O gráfico k-distance auxilia a selecionar `eps`; ele não é o mesmo que o cotovelo de WSS do K-Means.
 
-## 6. Aviso
+
+## 7. Análise de sentimentos IMDb com lógica fuzzy
+
+A página **Fuzzy Sentiment** adiciona uma análise independente da base Wisconsin.
+Ela utiliza o arquivo IMDb Reviews, com as colunas `review` e `sentiment`,
+armazenado em um SQLite próprio: `data/imdb_sentiment.db`.
+
+1. Abra a página **Fuzzy Sentiment** no menu lateral.
+2. Envie o arquivo `IMDB Dataset.csv` para criar/preencher o banco IMDb.
+3. Escolha o tamanho da amostra e execute a inferência fuzzy.
+4. Consulte as métricas, matriz de confusão, distribuição do índice fuzzy e teste textos individuais.
+
+O módulo combina o escore de polaridade e a intensidade lexical do VADER com
+regras fuzzy Mamdani e defuzzificação pelo centroide. As funções de pertinência
+são parâmetros didáticos e devem ser avaliadas/ajustadas em dados de desenvolvimento
+antes de qualquer conclusão sobre desempenho.
+
+**Observação sobre publicação:** o arquivo CSV não é incluído no repositório nesta
+etapa. A página recebe o arquivo por upload e cria o banco SQLite em tempo de
+execução. Em ambientes com armazenamento efêmero, como algumas configurações do
+Streamlit Community Cloud, o banco pode ser perdido após reinicializações e a
+importação precisará ser repetida. O banco IMDb não substitui nem altera o banco
+Breast Insight.
+
+## 8. Aviso
 
 O projeto é educacional. Resultados de modelos e agrupamentos não constituem diagnóstico nem validação clínica e não devem ser utilizados para decisões médicas.
