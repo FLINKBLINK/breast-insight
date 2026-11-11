@@ -71,7 +71,7 @@ def fuzzy_inference(polarity, intensity):
 def analyze_review(review):
     cleaned = clean_review(review)
     scores = _ANALYZER.polarity_scores(cleaned)
-    intensity = min(1.0, scores["pos"] + scores["neg"])
+    intensity = min(1.0, (scores["pos"] + scores["neg"]) * 2.5)
     score = fuzzy_inference(scores["compound"], intensity)
     return {
         "polarity": scores["compound"],
