@@ -9,7 +9,6 @@ from data.imdb_ingestion import import_imdb_dataset
 from database.imdb_connection import get_imdb_engine, imdb_table_exists, test_imdb_connection
 from sentiment.fuzzy_model import analyze_review, analyze_dataset
 
-st.set_page_config(page_title="IMDb | Fuzzy Sentiment", page_icon="🧠", layout="wide")
 st.title("🧠 Análise de sentimentos com lógica fuzzy")
 st.caption("IMDb Reviews · VADER + inferência fuzzy Mamdani · SQLite independente")
 st.markdown(
